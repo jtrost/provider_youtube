@@ -1,0 +1,6 @@
+name = YouTube Provider
+description = Import YouTube videos as nodes
+core = 7.x
+package = Providers
+files[] = provider_youtube.module
+dependencies[] = provider

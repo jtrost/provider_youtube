@@ -1,0 +1,129 @@
+<?php
+/**
+ * Implements hook_fetch_provider()
+ */
+function provider_youtube_fetch_provider() {
+  // The provider to update
+  $provider = provider_load(intval(arg(1)));
+  
+  // The URL to request
+  $url = "http://gdata.youtube.com/feeds/api/users/" . $provider->field_username['und'][0]['value'] . "/uploads?v=2&alt=jsonc&max-results=" . $provider->field_max_results['und'][0]['value'] . "&start-index=". $provider->field_start_index['und'][0]['value'];
+  
+  // Let the user know how many nodes were affected
+  $nodes_created = 0;
+  $nodes_updated = 0;
+  
+  // The data we fetched from the URL
+  $response = fetch($url);
+
+  // Loop through each item
+  foreach($response->data->items as $item) {
+    // Build query to check if this item has already been imported
+    $query = new EntityFieldQuery();
+    $entity = $query->entityCondition('entity_type', 'node')
+      ->entityCondition('bundle', $provider->field_content_type['und'][0]['value'])
+      ->fieldCondition('field_uid', 'value', $item->id, '=');
+    $result = $query->execute();
+
+    if($result) { // This item exists. Update it.
+      $nid = reset($result['node'])->nid;
+      $node = node_load($nid);
+      $nodes_updated++;
+    } else { // This item does not exist. Create it.
+      $node = new stdClass();
+      $node->type     = $provider->field_content_type['und'][0]['value'];    // The content type
+      $node->language = LANGUAGE_NONE;                                       // The language
+      $node->uid      = $provider->field_node_author['und'][0]['target_id']; // The node author
+      $nodes_created++;
+    }
+
+    // Save the node
+    node_save(provider_youtube_update_provider_node($node, $item));
+  }
+  
+  // Set messages for the user
+  if($nodes_created > 0) {
+    drupal_set_message("Created ".$nodes_created." nodes.");
+  }
+  
+  if($nodes_updated > 0) {
+    drupal_set_message("Updated ".$nodes_updated." nodes.");
+  }
+  
+  // Log this update
+  watchdog('provider_youtube', 'Fetched '.count($response->data->items).' items for '.$provider->title.'. Created '.$nodes_created.' nodes. Updated '.$nodes_updated.' nodes.');
+  
+  // Redirect to the provider view page
+  header('Location: /provider/'.$provider->pid);
+}
+
+/**
+ * Implements hook_update_provider_node()
+ *
+ * @param $node
+ *   The node object.
+ *
+ * @param $item
+ *   The item from the feed.
+ */
+function provider_youtube_update_provider_node($node, $item) {
+  // Build the embed code
+  $embed_code = "<iframe src='http://www.youtube.com/embed/".$item->id."?rel=0' frameborder='0' allowfullscreen></iframe>";
+
+  // Standard properties
+  $node->title    = $item->title;               // Video title
+  $node->body     = $item->description;         // Video description
+  $node->created  = strtotime($item->uploaded); // The date the video was uploaded
+  $node->changed  = strtotime($item->updated);  // The date the video was updated
+
+  // Content type properties
+  $node->field_uid[LANGUAGE_NONE][0]['value']              = $item->id;                   // Universal ID number
+  $node->field_uploader[LANGUAGE_NONE][0]['value']         = $item->uploader;             // YouTube user uploader
+  $node->field_youtube_category[LANGUAGE_NONE][0]['value'] = $item->category;             // YouTube category
+  $node->field_thumbnail[LANGUAGE_NONE][0]['value']        = $item->thumbnail->hqDefault; // YouTube thumbnail
+  $node->field_embed_code[LANGUAGE_NONE][0]['value']       = $embed_code;                 // Iframe embed code
+  $node->field_duration[LANGUAGE_NONE][0]['value']         = $item->duration;             // Video duration
+  $node->field_aspect_ratio[LANGUAGE_NONE][0]['value']     = $item->aspectRatio;          // Video aspect ratio
+  $node->field_rating[LANGUAGE_NONE][0]['value']           = $item->rating;               // Video rating
+  $node->field_like_count[LANGUAGE_NONE][0]['value']       = $item->likeCount;            // Video like count
+  $node->field_rating_count[LANGUAGE_NONE][0]['value']     = $item->ratingCount;          // Video rating count
+  $node->field_view_count[LANGUAGE_NONE][0]['value']       = $item->viewCount;            // Video view count
+  $node->field_favorite_count[LANGUAGE_NONE][0]['value']   = $item->favoriteCount;        // Video favorite count
+  $node->field_comment_count[LANGUAGE_NONE][0]['value']    = $item->commentCount;         // Video comment count
+  
+  return $node;
+}
+
+/**
+ * Implements hook_set_provider_types()
+ */
+function provider_youtube_set_provider_types() {
+  // Retrieve the current provider types
+  $types = variable_get('provider_types', array());
+
+  if (empty($types['youtube'])) {
+    // Create the provider type(s)
+    $types['youtube'] = (object)array(
+      'type'        => 'youtube',
+      'name'        => t('YouTube'),
+      'description' => t("Import YouTube videos from a user's feed.")
+    );
+
+    // Save the new provider type(s)
+    variable_set('provider_types', $types);
+  }
+
+  return $types;
+}
+
+/**
+ * cURLs the URL and returns the json as an associative array
+ */
+function fetch($url) {
+  $ch = curl_init();
+  curl_setopt($ch, CURLOPT_URL, $url);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+  $json = json_decode(curl_exec($ch));
+  curl_close($ch);
+  return $json;
+}
