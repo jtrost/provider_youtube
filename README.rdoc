@@ -1,10 +1,10 @@
 == YouTube Provider 0.1
 
 === Summary
-YouTube Provider is an implementation of the Providers module. It takes a YouTube user's username, makes an API call to get that [user's uploads](https://developers.google.com/youtube/2.0/developers_guide_protocol_video_feeds#User_Uploaded_Videos), and creates nodes for each uploaded video returned from the API call.
+YouTube Provider is an implementation of the Providers module. It takes a YouTube user's username, makes an API call to get that {user's uploads}(https://developers.google.com/youtube/2.0/developers_guide_protocol_video_feeds#User_Uploaded_Videos), and creates nodes for each uploaded video returned from the API call.
 
 === Installation
-* Download and enable the [Providers module](https://drupal.org/sandbox/jtrost/2049659).
+* Download and enable the {Providers module}(https://drupal.org/sandbox/jtrost/2049659).
 * Enable this module.
 * Extract youtube_video_content_type.rar into your modules directory and enable it.
 
@@ -14,8 +14,8 @@ YouTube Provider is an implementation of the Providers module. It takes a YouTub
 * Create the new provider.
 Title :: The title of the provider.
 Username :: The username of the YouTube user whose uploads you want to import.
-Max Results :: [The maximum number of items to return with each API call](https://developers.google.com/youtube/2.0/reference?csw=1#max-resultssp).
-Start Index :: pThe position in the user's upload history to begin importing items](https://developers.google.com/youtube/2.0/reference?csw=1#start-indexsp).
+Max Results :: {The maximum number of items to return with each API call}(https://developers.google.com/youtube/2.0/reference?csw=1#max-resultssp).
+Start Index :: {The position in the user's upload history to begin importing items}(https://developers.google.com/youtube/2.0/reference?csw=1#start-indexsp).
 Content Type :: The content type to use when creating nodes. Select 'YouTube Video', which is the content type created in step 3 of installation.
 Node Author :: The user who will be shown as the node author.
 * Click 'Save'. This will save the provider and redirect you to that provider's page (/provider/pid)
